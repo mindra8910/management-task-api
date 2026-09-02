@@ -1,0 +1,73 @@
+# version: '3.8'
+# services:
+#   api:
+#     build: .
+#     ports:
+#       - "8080:8080"
+#     environment:
+#       - DB_DSN=postgres://root:root@db:5432/taskdb?sslmode=disable
+#       - JWT_SECRET=supersecretkey
+#       - TZ=Asia/Jakarta
+#     volumes:
+#       - ./logs:/app/logs
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#     command: air -c .air.toml
+
+#   db:
+#     image: postgres:15-alpine
+#     environment:
+#       - POSTGRES_USER=root
+#       - POSTGRES_PASSWORD=root
+#       - POSTGRES_DB=taskdb
+#       - TZ=Asia/Jakarta
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+#     healthcheck:
+#       test: [ "CMD-SHELL", "pg_isready -U root -d taskdb" ]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+
+version: '3.8'
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_DSN=postgres://root:root@db:5432/taskdb?sslmode=disable
+      - JWT_SECRET=supersecretkey
+      - TZ=Asia/Jakarta
+    volumes:
+      - .:/app
+      - /app/tmp
+      - go-mod-cache:/go/pkg/mod # <-- cache modul
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=taskdb
+      - TZ=Asia/Jakarta
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U root -d taskdb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  go-mod-cache:
