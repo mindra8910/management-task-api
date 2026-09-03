@@ -1,6 +1,7 @@
 package http
 
 import (
+	"errors"
 	"task-api/internal/domain"
 	"task-api/internal/pkg/response"
 
@@ -55,9 +56,9 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 
 	created, err := h.taskUsecase.CreateTask(c.Request.Context(), idempotencyKey, task, userID)
 	if err != nil {
-		// Handle duplicate idempotency key (MySQL unique constraint)
-		if err.Error() == "duplicate key" {
-			response.Conflict(c, response.CodeIdempotencyFailed, "Duplicate idempotency key")
+		// Check if idempotency key already exists
+		if errors.Is(err, domain.ErrIdempotencyKeyExists) {
+			response.Conflict(c, response.CodeIdempotencyExists, "Idempotency key already exists")
 			return
 		}
 		response.InternalServerError(c, response.CodeInternalServer, "Failed to create task")

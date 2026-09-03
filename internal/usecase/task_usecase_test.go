@@ -63,8 +63,8 @@ func TestTaskUsecase_CreateTask(t *testing.T) {
 					return data, 200, nil
 				},
 			},
-			expectedErr:  nil,
-			expectedTask: &domain.Task{ID: "cached-id", Title: "Cached"},
+			expectedErr:  domain.ErrIdempotencyKeyExists,
+			expectedTask: nil,
 		},
 		{
 			name:           "create error without idempotency",
@@ -154,6 +154,7 @@ func TestTaskUsecase_CreateTask(t *testing.T) {
 				assert.EqualError(t, err, tt.expectedErr.Error())
 			} else {
 				assert.NoError(t, err)
+				assert.NotNil(t, task)
 				assert.Equal(t, tt.expectedTask.ID, task.ID)
 				assert.Equal(t, tt.expectedTask.Title, task.Title)
 				if tt.expectedTask.UserID != "" {

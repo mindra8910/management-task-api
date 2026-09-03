@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"database/sql"
+	"errors"
 )
 
 type Task struct {
@@ -45,6 +46,9 @@ type TaskFilter struct {
 	Page   int    `form:"page,default=1"`
 	Limit  int    `form:"limit,default=10"`
 }
+
+// ErrIdempotencyKeyExists indicates the idempotency key already exists
+var ErrIdempotencyKeyExists = errors.New("idempotency key already exists")
 
 type TaskUsecase interface {
 	CreateTask(ctx context.Context, idempotencyKey string, task *Task, userID string) (*Task, error)

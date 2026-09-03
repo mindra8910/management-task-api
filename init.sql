@@ -29,5 +29,6 @@ CREATE TABLE IF NOT EXISTS idempotency_keys (
     idempotency_key VARCHAR(36) PRIMARY KEY,
     response_body JSONB,
     status_code INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expire_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '24 hours')
 );

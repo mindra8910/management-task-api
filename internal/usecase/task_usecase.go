@@ -18,16 +18,15 @@ func NewTaskUsecase(repo domain.TaskRepository) domain.TaskUsecase {
 }
 
 func (u *taskUsecase) CreateTask(ctx context.Context, idempotencyKey string, task *domain.Task, userID string) (*domain.Task, error) {
+	// Check idempotency - jika ada cached response, return error "key exists"
 	if idempotencyKey != "" {
 		cachedResp, _, err := u.taskRepo.GetIdempotency(ctx, idempotencyKey)
 		if err == nil && cachedResp != nil {
-			var task domain.Task
-			if err := json.Unmarshal(cachedResp, &task); err == nil {
-				return &task, nil
-			}
+			return nil, domain.ErrIdempotencyKeyExists
 		}
 	}
 
+	// Generate ID dan set user
 	task.ID = uuid.New().String()
 	task.UserID = userID
 	if task.Status == "" {

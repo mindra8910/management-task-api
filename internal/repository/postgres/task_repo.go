@@ -29,10 +29,13 @@ func (r *postgresTaskRepo) CreateTx(ctx context.Context, tx *sql.Tx, task *domai
 	return err
 }
 
-// SaveIdempotencyTx - save idempotency key dalam transaction
+// SaveIdempotencyTx - save idempotency key dalam transaction (24 hour window)
 func (r *postgresTaskRepo) SaveIdempotencyTx(ctx context.Context, tx *sql.Tx, key string, response []byte, code int) error {
-	query := `INSERT INTO idempotency_keys (idempotency_key, response_body, status_code, created_at)
-	          VALUES ($1, $2, $3, NOW())`
+	query := `INSERT INTO idempotency_keys (idempotency_key, response_body, status_code, created_at, expire_at)
+	          VALUES ($1, $2, $3, NOW(), NOW() + INTERVAL '24 hours')
+	          ON CONFLICT (idempotency_key) DO UPDATE SET
+	          response_body = EXCLUDED.response_body,
+	          status_code = EXCLUDED.status_code`
 	_, err := tx.ExecContext(ctx, query, key, response, code)
 	return err
 }
@@ -219,21 +222,24 @@ func (r *postgresTaskRepo) Assign(ctx context.Context, taskID, assignerID, assig
 
 // Idempotency methods
 func (r *postgresTaskRepo) SaveIdempotency(ctx context.Context, key string, response []byte, code int) error {
-	query := `INSERT INTO idempotency_keys (idempotency_key, response_body, status_code, created_at)
-	          VALUES ($1, $2, $3, NOW())`
+	query := `INSERT INTO idempotency_keys (idempotency_key, response_body, status_code, created_at, expire_at)
+	          VALUES ($1, $2, $3, NOW(), NOW() + INTERVAL '24 hours')
+	          ON CONFLICT (idempotency_key) DO UPDATE SET
+	          response_body = EXCLUDED.response_body,
+	          status_code = EXCLUDED.status_code`
 	_, err := r.db.ExecContext(ctx, query, key, response, code)
-	// Jika duplicate key, return error untuk ditangani usecase
 	return err
 }
 
 func (r *postgresTaskRepo) GetIdempotency(ctx context.Context, key string) ([]byte, int, error) {
-	query := `SELECT response_body, status_code FROM idempotency_keys WHERE idempotency_key = $1`
+	query := `SELECT response_body, status_code FROM idempotency_keys
+	          WHERE idempotency_key = $1 AND expire_at > NOW()`
 	var response []byte
 	var code int
 	err := r.db.QueryRowContext(ctx, query, key).Scan(&response, &code)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, 0, nil // not found
+			return nil, 0, nil // not found or expired
 		}
 		return nil, 0, err
 	}
