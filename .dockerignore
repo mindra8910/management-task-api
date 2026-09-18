@@ -1,0 +1,11 @@
+tmp/
+logs/
+.env
+.golangci.yml
+*.log
+.idea/
+.vscode/
+.git/
+.github/
+tmp/main
+gabungan_files.txt

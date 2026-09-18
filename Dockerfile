@@ -1,18 +1,14 @@
-FROM golang:alpine
+# Runtime image - hanya berisi binary compiled
+FROM alpine:3.20
 
-# Install git (jika belum)
-RUN apk add --no-cache git
+RUN apk --no-cache add ca-certificates tzdata curl
 
-# Install Air
-RUN go install github.com/air-verse/air@latest
+WORKDIR /root/
 
-ENV PATH="/go/bin:${PATH}"
+COPY task-manager .
 
-WORKDIR /app
-
-# Copy source code (tidak perlu go mod download)
-COPY . .
+RUN mkdir -p /root/logs
 
 EXPOSE 8080
 
-CMD ["air", "-c", ".air.toml"]
+CMD ["./task-manager"]
